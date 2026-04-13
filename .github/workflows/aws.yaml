@@ -7,7 +7,7 @@ on:
 
 env:
     AWS_REGION: us-east-1
-    ECR_REPOSITORY: llm_repository
+    ECR_REPOSITORY: llm-repository
     AWS_ECS_CLUSTER: llm_cluster
     AWS_ECS_SERVICE: llm_service
     AWS_ECS_TASK_DEFINITION: .github/workflows/td.json
