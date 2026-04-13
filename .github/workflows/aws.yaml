@@ -11,7 +11,9 @@ env:
     AWS_ECS_CLUSTER: llm_cluster
     AWS_ECS_SERVICE: llm_service
     AWS_ECS_TASK_DEFINITION: .github/workflows/td.json
-
+permissions:
+    contents: read
+    id-token: write
 jobs:
     deploy:
         runs-on: ubuntu-latest
@@ -55,4 +57,4 @@ jobs:
             cluster: ${{ env.AWS_ECS_CLUSTER }}
             service: ${{ env.AWS_ECS_SERVICE }}
             task-definition: ${{ steps.fill-task-def.outputs.task-definition }}
-            wait-for-service-stability: true
+            wait-for-service-stability: false
