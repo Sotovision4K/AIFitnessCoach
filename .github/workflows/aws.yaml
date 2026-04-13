@@ -1,0 +1,58 @@
+name: Deploy to AWS ECS
+
+on:
+    push:
+        branches:
+        - main
+
+env:
+    AWS_REGION: us-east-1
+    ECR_REPOSITORY: llm_repository
+    AWS_ECS_CLUSTER: llm_cluster
+    AWS_ECS_SERVICE: llm_service
+    AWS_ECS_TASK_DEFINITION: .github/workflows/td.json
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ env.AWS_REGION }}
+
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
+        - name: Build, tag, and push image to ECR
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            IMAGE_TAG: ${{ github.sha }}
+          run: |
+            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        - name : Fill the new image URI in the task definition
+          id: fill-task-def
+          uses: aws-actions/amazon-ecs-render-task-definition@v1
+          with:
+            task-definition: ${{ env.AWS_ECS_TASK_DEFINITION }}
+            container-name: llm-container
+            image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+
+        - name: Deploy to AWS
+          uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+          with:
+            cluster: ${{ env.AWS_ECS_CLUSTER }}
+            service: ${{ env.AWS_ECS_SERVICE }}
+            task-definition: ${{ steps.fill-task-def.outputs.task-definition }}
+            wait-for-service-stability: true
