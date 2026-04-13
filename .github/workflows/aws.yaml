@@ -55,4 +55,4 @@ jobs:
             cluster: ${{ env.AWS_ECS_CLUSTER }}
             service: ${{ env.AWS_ECS_SERVICE }}
             task-definition: ${{ steps.fill-task-def.outputs.task-definition }}
-            wait-for-service-stability: true
+            wait-for-service-stability: false
