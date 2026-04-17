@@ -13,6 +13,7 @@ logging.basicConfig(
 
 app = FastAPI(title="AI Coach LLM API")
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

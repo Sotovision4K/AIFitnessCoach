@@ -28,3 +28,10 @@ Thumbs.db
 
 # Podman / Docker
 *.log
+docker-compose.prod.yml
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfvars

@@ -25,3 +25,18 @@ class Settings(BaseSettings):
     DYNAMO_TABLE_NAME: str = "WorkoutPlans"
 
     log_level : str = "INFO"
+
+    # Cognito configuration
+    COGNITO_USER_POOL_ID: str
+    COGNITO_CLIENT_ID: str 
+    COGNITO_REGION: str
+    COGNITO_JWKS_URL: str
+
+    @property
+    def cognito_issuer(self) -> str:
+        return f"https://cognito-idp.{self.COGNITO_REGION}.amazonaws.com/{self.COGNITO_USER_POOL_ID}"
+
+    @property
+    def jwks_url(self) -> str:
+        return self.COGNITO_JWKS_URL
+    

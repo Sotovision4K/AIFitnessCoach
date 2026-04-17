@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 from app.adapters.llm_adapter import ClaudeAdapter
 from app.config import Settings
-from app.dependency import get_settings
+from app.dependency import get_settings, get_current_user, CurrentUser
 from app.schemas.request import WorkoutGenerateRequest
 from app.services.workout_generator import WorkoutGenerator
-from json import loads
+
 
 from app.adapters.dynamodb_adapters import DynamoDBAdapter
 router = APIRouter()
@@ -25,6 +25,7 @@ def _get_repository(settings: Settings = Depends(get_settings))-> DynamoDBAdapte
 async def gen_workout(
     request: WorkoutGenerateRequest,
     settings: Settings = Depends(get_settings),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     logger.info("Workout generation requested: split=%s, days=%d", request.split_type, request.gym_days_per_week)
     llm_client = ClaudeAdapter(
@@ -33,8 +34,11 @@ async def gen_workout(
         max_tokens=settings.MAX_TOKENS,
         temperature=settings.temp,
     )
+    _repo = _get_repository(settings)
+
     workout_generator = WorkoutGenerator(llm_client=llm_client, settings=settings)
     plan = await workout_generator.generate(request)
 
+    await _repo.save_workout_plan(current_user.email, plan)
     logger.info("Workout generation completed")
     return {"message": "Workout generated successfully!", "workout_plan": plan}
