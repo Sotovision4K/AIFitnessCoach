@@ -58,7 +58,7 @@ export function useMultiStepForm() {
     setError(null);
     const unpacked_input = { ...input.personalInfo, ...input.fitnessProfile, ...input.fitnessProfile.oneRepMax, ...input.equipment, ...input.preferences };
     try {
-      await api.put('/api/v1/user/profile/', unpacked_input, auth?.user?.access_token);
+      await api.put('/api/v1/user/profile/', unpacked_input, auth?.user?.id_token);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');

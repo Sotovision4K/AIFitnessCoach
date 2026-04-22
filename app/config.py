@@ -18,11 +18,12 @@ class Settings(BaseSettings):
 
 
     #dynamodb configuration
-    DYNAMODB_ENDPOINT: str = "http://localhost:8000"
     AWS_REGION: str = "us-east-1"
-    AWS_ACCESS_KEY_ID: str = "local"
-    AWS_SECRET_ACCESS_KEY: str = "local"
-    DYNAMO_TABLE_NAME: str = "WorkoutPlans"
+    DYNAMO_TABLE_NAME: str = "workout_plans"
+    USERS_TABLE_NAME: str = "user_table"
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    DYNAMODB_ENDPOINT: str | None = None  # None = real AWS; set to http://dynamodb-local:8000 for local dev
 
     log_level : str = "INFO"
 

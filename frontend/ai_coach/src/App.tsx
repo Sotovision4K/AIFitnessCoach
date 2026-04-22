@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { GridBackground } from '@/components/layout/GridBackground';
 import { Scanline } from '@/components/layout/Scanline';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ErrorPage } from '@/pages/ErrorPage';
 import { CognitoAuthProvider } from '@/lib/auth-config';
 import { ProtectedRoute } from './components/auth/protectedRoute';
 
@@ -48,6 +49,7 @@ function RootLayout() {
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: '/', element: <LandingPage /> },
       { path: '/onboarding', element: 

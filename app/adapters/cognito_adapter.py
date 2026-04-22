@@ -1,9 +1,13 @@
 
+import logging
+
 from app.dependency import Settings
 from jose import jwt
 from jose.exceptions import JWTClaimsError
 from jwt import PyJWKClient, PyJWK, exceptions
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 
 class CognitoAdapter:
@@ -32,16 +36,17 @@ class CognitoAdapter:
         """Verify the JWT token with Cognito and return the claims."""
         public_key = self.get_public_key(token)
         try:
-            # Decode the JWT token
+
             claims = jwt.decode(
                 token,
                 public_key,
                 algorithms=["RS256"],
                 audience=self.settings.COGNITO_CLIENT_ID,
                 issuer=self.settings.cognito_issuer,
-                options={"verify_exp": True, "verify_aud": True, "verify_iss": True}, 
+                options={"verify_exp": True, "verify_aud": True, "verify_iss": True, "verify_at_hash": False}, 
                 # require=["sub", "email"]  # Ensure required claims are present
             )
+            logger.info("Decoded claims: %s", claims)
             sub = claims.get("sub")
             email = claims.get("email")
             return {"sub": sub, "email": email, "claims": claims}

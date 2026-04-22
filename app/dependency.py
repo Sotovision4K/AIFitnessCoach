@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 
-from aioboto3 import Session
+from aioboto3 import Session #type : ignore[import]
 from fastapi import Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.ports.idp_port import IDPPort
@@ -17,20 +17,22 @@ def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]
 
 
+@lru_cache(maxsize=1) #this is cheap to cache, we do not cache the resource since it holds HTTP connections
 def get_session() -> Session:
     """Return a reusable aioboto3 session."""
-    return Session()
+    return Session(aws_access_key_id=get_settings().AWS_ACCESS_KEY_ID, aws_secret_access_key=get_settings().AWS_SECRET_ACCESS_KEY)
 
 
-def get_dynamodb_resource(settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
-    """Return an aioboto3 DynamoDB resource context manager."""
-    return session.resource(
-        "dynamodb",
-        endpoint_url=settings.DYNAMODB_ENDPOINT,
+async def get_dynamodb_resource(settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
+    kwargs: dict = dict(
         region_name=settings.AWS_REGION,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )
+    if settings.DYNAMODB_ENDPOINT:
+        kwargs["endpoint_url"] = settings.DYNAMODB_ENDPOINT
+    async with session.resource("dynamodb", **kwargs) as dynamodb:
+        yield dynamodb
 
 def auth_provider(settings: Settings = Depends(get_settings)) -> IDPPort:
     """Return an instance of the authentication provider."""

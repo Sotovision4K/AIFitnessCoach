@@ -32,9 +32,10 @@ class SplitType(str, Enum):
     BRO_SPLIT = "bro_split"
 
 class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str | None = Field(default=None, max_length=100)
     email: str | None = Field(default=None, max_length=100)
+    onboarded: bool = Field(default=False, alias="onboardingComplete")
 
     # personalInfo
     age: int
@@ -62,7 +63,7 @@ class User(BaseModel):
 
     language: str = "en"
     squat_1rm_kg: int | None = Field(alias="squatKg", default=None)
-    bench_1rm_kg: int | None = Field(alias="benchKg", default=None)
+    bench_1rm_kg: int | None = Field(alias="benchPressKg", default=None)
     deadlift_1rm_kg: int | None = Field(alias="deadliftKg", default=None)
     
 

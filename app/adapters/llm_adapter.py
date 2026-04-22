@@ -71,7 +71,8 @@ class ClaudeAdapter():
 
         # Parse
         try:
-            return loads(text)
+            return WorkoutPlan.model_validate(loads(text))
         except json.JSONDecodeError as e:
+            logger.error("Failed to parse workout plan JSON: %s. Raw response: %s", e, response)
             raise LLMerror(f"Failed to parse workout plan JSON: {str(e)}. Raw response: {response}")
 

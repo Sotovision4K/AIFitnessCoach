@@ -1,6 +1,7 @@
 import logging
 
 from .prompt_builder import build_workout_prompt
+from app.models.user import User
 from app.ports.LLM_port import LlmPort
 from app.ports.repo_port import RepositoryPort
 
@@ -15,18 +16,14 @@ class WorkoutGenerator:
         self.settings = settings
         self._repository = repository
 
-    async def generate(self, request):
-
+    async def generate(self, request: User):
         prompt = build_workout_prompt(request)
-
-        if request.language != "en":
-            prompt = f"Translate the following workout plan into {request.language}:\n\n{prompt}"
 
         plan = await self.llm_client.generate(prompt)
         logger.info("LLM returned plan")
 
         if self._repository:
-            await self._repository.save_workout_plan("myself", plan)
+            await self._repository.save_workout_plan(request.userId, plan)
             logger.info("Plan saved to repository")
 
         return plan

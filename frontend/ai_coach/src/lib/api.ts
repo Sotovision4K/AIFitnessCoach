@@ -45,8 +45,8 @@ class ApiClient {
     return response.json() as Promise<T>;
   }
 
-  async get<T>(path: string): Promise<T> {
-    return this.request<T>('GET', path);
+  async get<T>(path: string, token?: string): Promise<T> {
+    return this.request<T>('GET', path, undefined, token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : undefined);
   }
 
   async put<T>(path: string, body: unknown, token?: string): Promise<T> {
@@ -54,8 +54,8 @@ class ApiClient {
     return this.request<T>('PUT', path, body, token ? { 'Authorization': `Bearer ${token}` , 'Content-Type': 'application/json'} : undefined);
   }
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('POST', path, body);
+  async post<T>(path: string, body?: unknown, token?: string): Promise<T> {
+    return this.request<T>('POST', path, body, token ? { 'Authorization': `Bearer ${token}` , 'Content-Type': 'application/json'} : undefined);
   }
 }
 

@@ -3,8 +3,11 @@ import { Footer } from '@/components/layout/Footer';
 import { WeekNav } from '@/components/dashboard/WeekNav';
 import { WorkoutPlanView } from '@/components/dashboard/WorkoutPlanView';
 import { GenerateButton } from '@/components/dashboard/GenerateButton';
+import { useWorkoutPlan } from '@/hooks/useWorkoutPlan';
 
 export function DashboardPage() {
+  const { plan, isLoading, error, setPlan } = useWorkoutPlan();
+
   return (
     <>
       <Navbar />
@@ -21,14 +24,14 @@ export function DashboardPage() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <WeekNav weekNumber={1} hasPrevious={false} hasNext={false} />
+              <WeekNav weekNumber={plan?.weekNumber ?? 1} hasPrevious={false} hasNext={false} />
             </div>
           </div>
 
-          <WorkoutPlanView />
+          <WorkoutPlanView plan={plan} isLoading={isLoading} error={error} />
 
           <div className="mt-12">
-            <GenerateButton />
+            <GenerateButton onGenerated={setPlan} />
           </div>
         </div>
       </main>

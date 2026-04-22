@@ -1,21 +1,44 @@
 
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-
-from app.dependency import get_current_user
+from app.adapters.dynamodb_adapters import DynamoDBAdapter
+from app.config import Settings
+from app.dependency import get_current_user, get_settings, get_dynamodb_resource, CurrentUser
 from app.models.user import User
 
 router = APIRouter()
 
 
+def _get_repository(settings: Settings = Depends(get_settings), dynamodb=Depends(get_dynamodb_resource)) -> DynamoDBAdapter:
+    return DynamoDBAdapter(settings, dynamodb)
+
+
+@router.get("/get-profile")
+async def get_profile(
+    current_user: CurrentUser = Depends(get_current_user),
+    repo: DynamoDBAdapter = Depends(_get_repository),
+):
+    profile = await repo.get_user_profile(current_user.user_id)
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User profile not found")
+    return profile
+
+
 @router.put("/profile")
-async def create_profile(user: User, current_user: str = Depends(get_current_user)):
-    print("Current user:", current_user)
+async def create_profile(
+    user: User,
+    current_user: CurrentUser = Depends(get_current_user),
+    repo: DynamoDBAdapter = Depends(_get_repository),
+):
+    
+    sub = current_user.user_id
+
     user = User(
         name=user.name,
-        email=user.email,
+        onboardingComplete=True,
+        email=current_user.email,  # Use email from authenticated user
         age=user.age,
         gender=user.gender,
         heightCm=user.height_cm,
@@ -34,8 +57,10 @@ async def create_profile(user: User, current_user: str = Depends(get_current_use
         additionalComments=user.additional_comments,
         language=user.language,
         squatKg=user.squat_1rm_kg,
-        benchKg=user.bench_1rm_kg,
+        benchPressKg=user.bench_1rm_kg,
         deadliftKg=user.deadlift_1rm_kg,
-        )
+    )
+    
+    await repo.save_user_profile(sub, user)
 
     return {"message": "User profile created successfully"}

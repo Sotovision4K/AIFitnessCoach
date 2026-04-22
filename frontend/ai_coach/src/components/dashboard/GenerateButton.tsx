@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { api, ApiRequestError } from '@/lib/api';
+import { useAuth } from 'react-oidc-context';
+import type { WorkoutPlan } from '@/types/workout';
 
 interface GenerateResponse {
   planId: string;
@@ -7,27 +9,34 @@ interface GenerateResponse {
   message: string;
 }
 
-export function GenerateButton() {
+interface GenerateButtonProps {
+  onGenerated: (plan: WorkoutPlan) => void;
+}
+
+export function GenerateButton({ onGenerated }: GenerateButtonProps) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const auth = useAuth();
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     setError(null);
 
     try {
-      await api.post<GenerateResponse>('/api/v1/workout/generate');
-      // Reload the page to show the generating status
-      window.location.reload();
+      await api.post<GenerateResponse>('/api/v1/workout/generate', {}, auth?.user?.id_token);
+      // Fetch the newly created plan (will be in 'generating' status) and pass it up
+      const plan = await api.get<WorkoutPlan>('/api/v1/workout/latest', auth?.user?.id_token);
+      onGenerated(plan);
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 409) {
         setError('A plan is already being generated.');
       } else {
         setError(err instanceof Error ? err.message : 'Generation failed');
       }
+    } finally {
       setGenerating(false);
     }
-  }, []);
+  }, [auth, onGenerated]);
 
   return (
     <div className="text-center">

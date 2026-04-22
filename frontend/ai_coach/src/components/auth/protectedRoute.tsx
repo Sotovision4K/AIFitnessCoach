@@ -1,33 +1,46 @@
 
-import { useAuth } from "react-oidc-context"
+import { useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
+import { useNavigate, useLocation } from 'react-router';
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
+import { useProfile } from '@/hooks/useProfile';
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const auth = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { profile, isLoading: profileLoading } = useProfile();
 
+    // All hooks must be declared before any conditional returns
+    useEffect(() => {
+        if (!auth.isAuthenticated || !profile) return;
+
+        const onDashboard = location.pathname.startsWith('/dashboard');
+        const onOnboarding = location.pathname.startsWith('/onboarding');
+
+        if (!profile.onboardingComplete && onDashboard) {
+            navigate('/onboarding', { replace: true });
+        } else if (profile.onboardingComplete && onOnboarding) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [auth.isAuthenticated, profile, location.pathname, navigate]);
 
     if (auth.isLoading) {
-        return <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#0a0a0a',
-                color: '#00ff88',
-                fontFamily: 'monospace',
-                fontSize: '14px',
-                letterSpacing: '3px',
-            }}>
-                VERIFYING ACCESS...
-            </div>
+        return <FullScreenLoader message="VERIFYING ACCESS..." />;
     }
 
     if (auth.error) {
-        throw new Error("Redirect to home or login page on error");
+        navigate('/', { replace: true });
+        return null;
     }
 
     if (!auth.isAuthenticated) {
         auth.signinRedirect();
-        return null; // or a loading spinner
+        return null;
+    }
+
+    if (profileLoading) {
+        return <FullScreenLoader message="LOADING PROFILE..." />;
     }
 
     return <>{children}</>;

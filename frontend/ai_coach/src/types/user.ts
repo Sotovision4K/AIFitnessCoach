@@ -3,5 +3,5 @@ export interface UserProfile {
   email: string;
   name: string;
   createdAt: string;
-  hasCompletedOnboarding: boolean;
+  onboardingComplete: boolean;
 }

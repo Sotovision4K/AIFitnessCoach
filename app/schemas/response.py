@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ExerciseEntryResponse(BaseModel):
@@ -57,6 +57,39 @@ class ProfileResponse(BaseModel):
 
     message: str
     user_id: str
+
+
+# --- Frontend-aligned workout response (matches frontend/ai_coach/src/types/workout.ts) ---
+
+class ExerciseResponse(BaseModel):
+    id: str
+    name: str
+    sets: int
+    reps: int
+    weight_kg: float | None = Field(serialization_alias="weightKg", default=None)
+    rpe: int | None = None
+    notes: str | None = None
+    previous_weight_kg: float | None = Field(serialization_alias="previousWeightKg", default=None)
+
+    model_config = {"populate_by_name": True}
+
+
+class WorkoutDayResponse(BaseModel):
+    day_number: int = Field(serialization_alias="dayNumber")
+    label: str
+    exercises: list[ExerciseResponse]
+
+    model_config = {"populate_by_name": True}
+
+
+class WorkoutPlanClientResponse(BaseModel):
+    id: str
+    week_number: int = Field(serialization_alias="weekNumber")
+    status: str = "ready"
+    created_at: str = Field(serialization_alias="createdAt")
+    days: list[WorkoutDayResponse]
+
+    model_config = {"populate_by_name": True}
 
 
 class ErrorResponse(BaseModel):
