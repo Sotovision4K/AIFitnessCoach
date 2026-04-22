@@ -1,47 +1,57 @@
 
+from app.models.user import User
 
-from app.schemas.request import WorkoutGenerateRequest
 
-
-def build_workout_prompt(request : WorkoutGenerateRequest) -> str:  
-    """Build an English-language prompt for the Gemini LLM.
+def build_workout_prompt(request: User) -> str:
+    """Build an English-language prompt from a User model instance.
 
         Uses ternary inclusion — optional fields are only mentioned
         when they have values; the LLM never sees "missing" fields.
     """
-    
-    lines : list[str] = [
-        f"Generate a workout plan based on the following user profile and preferences:",
+    fitness_level = request.fitness_level.value
+    split_type = request.split_type.value
+    days = request.days_per_week
+
+    lines: list[str] = [
+        "Generate a workout plan based on the following user profile and preferences:",
         f"- Age: {request.age}",
         f"- Height: {request.height_cm} cm",
         f"- Weight: {request.weight_kg} kg",
-        f"- Activity level: {request.activity_level.value}",
-        f"- Gym days per week: {request.gym_days_per_week}",
-        f"- Goals: {request.goals}",
+        f"- Fitness level: {fitness_level}",
+        f"- Gym days per week: {days}",
+        f"- Goal: {request.goal.value}",
+        f"- Session duration: {request.session_duration_min} min",
+        f"- Gym access: {request.gym_access_type.value}",
     ]
 
-    if not request.activity_level.value == "beginner":
+    if request.equipment:
+        lines.append(f"- Available equipment: {', '.join(request.equipment)}")
+
+    if fitness_level != "beginner":
         lines.append(f"- 1RM Squat: {request.squat_1rm_kg} kg" if request.squat_1rm_kg else "- 1RM Squat: N/A")
         lines.append(f"- 1RM Bench Press: {request.bench_1rm_kg} kg" if request.bench_1rm_kg else "- 1RM Bench Press: N/A")
         lines.append(f"- 1RM Deadlift: {request.deadlift_1rm_kg} kg" if request.deadlift_1rm_kg else "- 1RM Deadlift: N/A")
 
     if request.injuries:
-        lines.append(f"- Injuries: {request.injuries}."
-                        "Substitute contraindicated exercises with injury-appropriate "
-                        "modifications at reduced load/RPE. Add a recovery-focused "
-                        "note in the suggestion field for each affected exercise."
-                 )
-    
-    if request.split_type:
-        lines.append(f"- Preferred split type: {request.split_type.value}")
-    
-    if request.include_cardio:
-        lines.append("- Include cardio: Yes")
-    
+        lines.append(
+            f"- Injuries: {', '.join(request.injuries)}. "
+            "Substitute contraindicated exercises with injury-appropriate "
+            "modifications at reduced load/RPE. Add a recovery-focused "
+            "note in the suggestion field for each affected exercise."
+        )
+
+    lines.append(f"- Preferred split type: {split_type}")
+
+    if request.cardio_included:
+        lines.append("- Include cardio: Yes" + (f" ({request.preferred_cardio})" if request.preferred_cardio else ""))
+
     if request.include_abs:
         lines.append("- Include abs exercises: Yes")
-    
-    if request.activity_level.value == "beginner":
+
+    if request.additional_comments:
+        lines.append(f"- Additional comments: {request.additional_comments}")
+
+    if fitness_level == "beginner":
         lines.extend([
             "",
             "This user is a beginner. Use RPE-only guidance. "
@@ -50,8 +60,8 @@ def build_workout_prompt(request : WorkoutGenerateRequest) -> str:
             "defaults for barbell/dumbbell movements. "
             "Keep exercise selection simple and foundational.",
         ])
-    
-    split_desc = _get_split_description(request)
+
+    split_desc = _get_split_description(split_type, days)
     lines.extend([
         "",
         split_desc,
@@ -72,10 +82,8 @@ def build_workout_prompt(request : WorkoutGenerateRequest) -> str:
     return "\n".join(lines)
 
 
-def _get_split_description(request: WorkoutGenerateRequest) -> str:
+def _get_split_description(split: str, days: int) -> str:
     """Return a description of session structure for the chosen split."""
-    split = request.split_type.value
-    days = request.gym_days_per_week
 
     if split == "push_pull_legs":
         return (

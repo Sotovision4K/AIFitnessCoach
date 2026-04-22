@@ -18,10 +18,26 @@ class Settings(BaseSettings):
 
 
     #dynamodb configuration
-    DYNAMODB_ENDPOINT: str = "http://localhost:8000"
     AWS_REGION: str = "us-east-1"
-    AWS_ACCESS_KEY_ID: str = "local"
-    AWS_SECRET_ACCESS_KEY: str = "local"
-    DYNAMO_TABLE_NAME: str = "WorkoutPlans"
+    DYNAMO_TABLE_NAME: str = "workout_plans"
+    USERS_TABLE_NAME: str = "user_table"
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    DYNAMODB_ENDPOINT: str | None = None  # None = real AWS; set to http://dynamodb-local:8000 for local dev
 
     log_level : str = "INFO"
+
+    # Cognito configuration
+    COGNITO_USER_POOL_ID: str
+    COGNITO_CLIENT_ID: str 
+    COGNITO_REGION: str
+    COGNITO_JWKS_URL: str
+
+    @property
+    def cognito_issuer(self) -> str:
+        return f"https://cognito-idp.{self.COGNITO_REGION}.amazonaws.com/{self.COGNITO_USER_POOL_ID}"
+
+    @property
+    def jwks_url(self) -> str:
+        return self.COGNITO_JWKS_URL
+    

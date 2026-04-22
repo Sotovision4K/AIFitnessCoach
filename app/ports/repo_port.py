@@ -1,11 +1,11 @@
 
 
 from typing import Protocol
-
+from app.models.workout_plan import WorkoutPlan
 
 class RepositoryPort(Protocol):
 
-    async def save_workout_plan(self, user_id: str, workout_plan: str):
+    async def save_workout_plan(self, user_id: str, workout_plan: WorkoutPlan):
         """Saves the generated workout plan for a user."""
         pass
 
