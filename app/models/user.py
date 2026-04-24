@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 import uuid
 from typing import Optional, Literal
 from enum import Enum
@@ -32,6 +32,8 @@ class SplitType(str, Enum):
     BRO_SPLIT = "bro_split"
 
 class User(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     userId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str | None = Field(default=None, max_length=100)
     email: str | None = Field(default=None, max_length=100)
@@ -71,6 +73,7 @@ class User(BaseModel):
     def validate_email(cls, value):
         if value is not None and "@" not in value:
             raise ValueError("Invalid email address")
+        return value
 
 
     @field_validator("additional_comments")

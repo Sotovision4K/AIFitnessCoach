@@ -27,6 +27,9 @@ class Settings(BaseSettings):
 
     log_level : str = "INFO"
 
+    # CORS configuration — comma-separated list of allowed origins
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
     # Cognito configuration
     COGNITO_USER_POOL_ID: str
     COGNITO_CLIENT_ID: str 

@@ -11,6 +11,8 @@ from app.adapters.cognito_adapter import CognitoAdapter
 
 security = HTTPBearer()  # Initialize the security scheme once
 _auth_provider: IDPPort | None = None  # Global variable to hold the authentication provider instance
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Load and cache settings from environment variables."""
