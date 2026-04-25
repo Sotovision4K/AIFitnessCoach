@@ -18,23 +18,17 @@ on:
 
 env:
     AWS_REGION: us-east-1
-    ECR_REPOSITORY: llm_repository
-    # Names of the Lambda functions to update. Change these if your
-    # Terraform/console-provisioned function names differ.
-    LAMBDA_API_FUNCTION: ai-coach-api
-    LAMBDA_WORKER_FUNCTION: ai-coach-worker
+    ECR_REPOSITORY: ai-coach-api
 
-# Don't pile up duplicate runs on rapid pushes to the same branch.
+    API_LAMBDA_NAME: ai-coach-dev-api
+    WORKER_LAMBDA_NAME: ai-coach-dev-worker
+
 concurrency:
     group: deploy-${{ github.ref }}
     cancel-in-progress: false
 
 jobs:
-    # ------------------------------------------------------------------ #
-    # 1. Detect which parts of the repo changed.                         #
-    #    Outputs are consumed by the deploy jobs below so the backend    #
-    #    is never rebuilt for frontend-only commits, and vice versa.     #
-    # ------------------------------------------------------------------ #
+
     changes:
         name: Detect changed paths
         runs-on: ubuntu-latest
@@ -63,15 +57,6 @@ jobs:
                         - 'frontend/**'
                         - '.github/workflows/aws.yaml'
 
-    # ------------------------------------------------------------------ #
-    # 2. Backend deploy — only runs when backend files changed,          #
-    #    or when manually forced. Frontend changes do NOT touch this.    #
-    #                                                                    #
-    #    Builds the container image once, pushes it to ECR, then points  #
-    #    BOTH Lambda functions (API + worker) at the new image. The two  #
-    #    functions share the same image; their handlers are configured   #
-    #    on the Lambda itself (Image Config → Command override).         #
-    # ------------------------------------------------------------------ #
     deploy-backend:
         name: Build & deploy backend (Lambda)
         needs: changes
@@ -111,22 +96,22 @@ jobs:
                   IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
               run: |
                   aws lambda update-function-code \
-                    --function-name "$LAMBDA_API_FUNCTION" \
+                    --function-name "$API_LAMBDA_NAME" \
                     --image-uri "$IMAGE_URI" \
                     --publish
                   aws lambda wait function-updated \
-                    --function-name "$LAMBDA_API_FUNCTION"
+                    --function-name "$API_LAMBDA_NAME"
 
             - name: Update worker Lambda to new image
               env:
                   IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
               run: |
                   aws lambda update-function-code \
-                    --function-name "$LAMBDA_WORKER_FUNCTION" \
+                    --function-name "$WORKER_LAMBDA_NAME" \
                     --image-uri "$IMAGE_URI" \
                     --publish
                   aws lambda wait function-updated \
-                    --function-name "$LAMBDA_WORKER_FUNCTION"
+                    --function-name "$WORKER_LAMBDA_NAME"
 
     # ------------------------------------------------------------------ #
     # 3. Frontend deploy — only runs when frontend files changed,        #
