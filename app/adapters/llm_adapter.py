@@ -23,7 +23,6 @@ class ClaudeAdapter():
         self.temperature = temperature
     
     async def generate(self, prompt: str) -> WorkoutPlan:
-        logger.info("Calling Anthropic model=%s", self.anthropic_api_model)
         response = self.client.messages.create(
             model=self.anthropic_api_model,
             messages=[{"role": "user", "content": prompt}],
@@ -31,7 +30,15 @@ class ClaudeAdapter():
             temperature=self.temperature,
             system="You are an expert fitness coach. Generate a workout plan based on the user's profile and preferences. Be concise but thorough in your suggestions.",
         )
-        logger.info("Anthropic response: usage=%s, stop_reason=%s", response.usage, response.stop_reason)
+        # Token usage is operationally valuable (cost-per-request tracking).
+        usage = response.usage
+        logger.info(
+            "llm_call model=%s input_tokens=%s output_tokens=%s stop=%s",
+            self.anthropic_api_model,
+            getattr(usage, "input_tokens", "?"),
+            getattr(usage, "output_tokens", "?"),
+            response.stop_reason,
+        )
 
         text_block = next(
             (block for block in response.content if isinstance(block, TextBlock)),
@@ -39,14 +46,16 @@ class ClaudeAdapter():
         )
 
         if text_block is None:
-            logger.error("No TextBlock in LLM response")
+            logger.error("llm_no_text_block stop=%s", response.stop_reason)
             raise LLMerror("Failed to generate workout plan: No response from LLM")
-    
+
         try:
-            workout_plan = self._parse_response(text_block.text)
-            return workout_plan
-        except Exception as e:
-            logger.error("Failed to parse LLM response: %s", e)
+            return self._parse_response(text_block.text)
+        except LLMerror:
+            # Already logged inside _parse_response.
+            raise
+        except Exception:
+            logger.exception("llm_parse_unexpected_error")
             raise LLMerror("Failed to parse workout plan")
 
     
@@ -73,6 +82,13 @@ class ClaudeAdapter():
         try:
             return WorkoutPlan.model_validate(loads(text))
         except json.JSONDecodeError as e:
-            logger.error("Failed to parse workout plan JSON: %s. Raw response: %s", e, response)
-            raise LLMerror(f"Failed to parse workout plan JSON: {str(e)}. Raw response: {response}")
+            # Do NOT log or include the raw response: it contains the model's
+            # echo of the user's profile (PII) and any prompt-injected payload.
+            logger.error(
+                "Failed to parse workout plan JSON: %s (response_len=%d)",
+                e,
+                len(response),
+            )
+            logger.debug("Raw LLM response (debug only): %s", response)
+            raise LLMerror("Failed to parse workout plan JSON") from e
 

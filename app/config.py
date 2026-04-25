@@ -4,8 +4,13 @@ from __future__ import annotations
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    # Deployment environment: "dev" | "staging" | "prod"
+    ENV: str = "dev"
+
     #Anthropic API configuration
-    temp : float = 0.4
+    # Renamed from `temp` to avoid colliding with the Windows `TEMP` env var
+    # (pydantic-settings is case-insensitive by default).
+    TEMPERATURE: float = 0.4
     MAX_TOKENS : int = 4096
     ANTHROPIC_API_KEY: str 
     ANTHROPIC_API_MODEL : str 
@@ -21,9 +26,17 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     DYNAMO_TABLE_NAME: str = "workout_plans"
     USERS_TABLE_NAME: str = "user_table"
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
+    JOBS_TABLE_NAME: str = "workout_jobs"
+    # Static credentials. Leave UNSET on Lambda so boto3 uses the execution
+    # role's credential chain. Only set these for local dev or non-AWS envs.
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
     DYNAMODB_ENDPOINT: str | None = None  # None = real AWS; set to http://dynamodb-local:8000 for local dev
+
+    # EventBridge configuration (async workout-generation pipeline)
+    EVENT_BUS_NAME: str = "default"
+    EVENT_SOURCE: str = "ai-coach.api"
+    EVENT_DETAIL_TYPE_GENERATE: str = "WorkoutGenerationRequested"
 
     log_level : str = "INFO"
 

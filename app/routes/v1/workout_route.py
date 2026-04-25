@@ -5,15 +5,24 @@ import logging
 import uuid
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 logger = logging.getLogger(__name__)
 
+from app.adapters.dynamodb_adapters import DynamoDBAdapter
 from app.config import Settings
-from app.dependency import get_settings, get_current_user, get_dynamodb_resource, CurrentUser
+from app.dependency import (
+    get_current_user,
+    get_dynamodb_resource,
+    get_event_bus,
+    get_settings,
+    CurrentUser,
+)
+from app.models.job import JobStatus, WorkoutJob
 from app.models.workout_plan import WorkoutPlan
+from app.ports.event_bus_port import EventBusPort
 from app.schemas.response import ExerciseResponse, WorkoutDayResponse, WorkoutPlanClientResponse
-from app.services.workout_service import generate_and_save, get_latest_workout_plan
+from app.services.workout_service import get_latest_workout_plan
 
 router = APIRouter()
 
@@ -48,17 +57,72 @@ def _to_client_response(plan: WorkoutPlan) -> WorkoutPlanClientResponse:
     )
 
 
-@router.post("/generate", status_code=201)
-async def gen_workout(
+@router.post("/generate", status_code=202)
+async def request_workout_generation(
+    settings: Settings = Depends(get_settings),
+    current_user: CurrentUser = Depends(get_current_user),
+    dynamodb=Depends(get_dynamodb_resource),
+    event_bus: EventBusPort = Depends(get_event_bus),
+):
+    """Enqueue a workout-generation job.
+
+    Flow:
+      1. Insert a PENDING job row (so the client has something to poll).
+      2. Publish a `WorkoutGenerationRequested` event to EventBridge.
+      3. Return 202 + jobId. The Lambda worker picks up the event and runs
+         the actual LLM generation asynchronously.
+    """
+    repo = DynamoDBAdapter(settings, dynamodb)
+    job = WorkoutJob(user_id=current_user.user_id)
+
+    await repo.create_job(job)
+    logger.info(
+        "Created workout job job_id=%s user_id=%s",
+        job.job_id,
+        current_user.user_id,
+    )
+
+    try:
+        await event_bus.publish(
+            detail_type=settings.EVENT_DETAIL_TYPE_GENERATE,
+            detail={
+                "jobId": job.job_id,
+                "userId": current_user.user_id,
+                "requestedAt": job.created_at,
+            },
+        )
+    except Exception:
+        # Best-effort mark the job as failed so the client doesn't poll forever.
+        await repo.update_job_status(
+            current_user.user_id,
+            job.job_id,
+            JobStatus.FAILED,
+            error="Failed to enqueue generation event",
+        )
+        raise
+
+    return {
+        "jobId": job.job_id,
+        "status": job.status,
+        "statusUrl": f"/api/v1/workout/jobs/{job.job_id}",
+    }
+
+
+@router.get("/jobs/{job_id}", status_code=200)
+async def get_job(
+    job_id: str,
     settings: Settings = Depends(get_settings),
     current_user: CurrentUser = Depends(get_current_user),
     dynamodb=Depends(get_dynamodb_resource),
 ):
-    logger.info("Workout generation requested for user %s", current_user.user_id)
-    plan = await generate_and_save(current_user.user_id, settings, dynamodb)
-    logger.info("Workout generation completed")
-    client_plan = _to_client_response(plan)
-    return client_plan.model_dump(by_alias=True)
+    repo = DynamoDBAdapter(settings, dynamodb)
+    job = await repo.get_job(current_user.user_id, job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    return job.model_dump()
 
 
 @router.get("/latest", status_code=200, response_model=WorkoutPlanClientResponse, response_model_by_alias=True)
@@ -67,13 +131,10 @@ async def get_latest_workout(
     current_user: CurrentUser = Depends(get_current_user),
     dynamodb=Depends(get_dynamodb_resource),
 ):
-    try:
-        logger.info("Fetching latest workout for user %s", current_user.user_id)
-        plan = await get_latest_workout_plan(settings, dynamodb, current_user.user_id)
-        if not plan:
-            return {"message": "No workout plan found"}
-        client_plan = _to_client_response(plan)
-    except Exception as e:
-        logger.error("Error fetching latest workout for user %s: %s", current_user.user_id, e)
-        return {"message": "Error fetching latest workout"}
-    return client_plan
+    plan = await get_latest_workout_plan(settings, dynamodb, current_user.user_id)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No workout plan found",
+        )
+    return _to_client_response(plan)

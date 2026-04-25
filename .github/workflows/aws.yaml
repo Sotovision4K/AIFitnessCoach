@@ -1,58 +1,185 @@
-name: Deploy to AWS ECS
+name: Deploy to AWS
 
 on:
     push:
         branches:
-        - main
+            - main
+    # Allow manual runs that force-deploy a side regardless of detected changes.
+    workflow_dispatch:
+        inputs:
+            force_backend:
+                description: "Force backend deploy"
+                type: boolean
+                default: false
+            force_frontend:
+                description: "Force frontend deploy"
+                type: boolean
+                default: false
 
 env:
     AWS_REGION: us-east-1
     ECR_REPOSITORY: llm_repository
-    AWS_ECS_CLUSTER: llm_cluster
-    AWS_ECS_SERVICE: llm_service
-    AWS_ECS_TASK_DEFINITION: .github/workflows/td.json
+    # Names of the Lambda functions to update. Change these if your
+    # Terraform/console-provisioned function names differ.
+    LAMBDA_API_FUNCTION: ai-coach-api
+    LAMBDA_WORKER_FUNCTION: ai-coach-worker
+
+# Don't pile up duplicate runs on rapid pushes to the same branch.
+concurrency:
+    group: deploy-${{ github.ref }}
+    cancel-in-progress: false
 
 jobs:
-    deploy:
+    # ------------------------------------------------------------------ #
+    # 1. Detect which parts of the repo changed.                         #
+    #    Outputs are consumed by the deploy jobs below so the backend    #
+    #    is never rebuilt for frontend-only commits, and vice versa.     #
+    # ------------------------------------------------------------------ #
+    changes:
+        name: Detect changed paths
         runs-on: ubuntu-latest
-
+        outputs:
+            backend: ${{ steps.filter.outputs.backend }}
+            frontend: ${{ steps.filter.outputs.frontend }}
         steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  # paths-filter needs history to diff against the previous commit on push events.
+                  fetch-depth: 2
 
-        - name: Configure AWS credentials
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: ${{ env.AWS_REGION }}
+            - name: Filter paths
+              id: filter
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      backend:
+                        - 'app/**'
+                        - 'requirements.txt'
+                        - 'Dockerfile'
+                        - 'docker-compose*.yml'
+                        - '.github/workflows/aws.yaml'
+                      frontend:
+                        - 'frontend/**'
+                        - '.github/workflows/aws.yaml'
 
-        - name: Login to Amazon ECR
-          id: login-ecr
-          uses: aws-actions/amazon-ecr-login@v2
+    # ------------------------------------------------------------------ #
+    # 2. Backend deploy — only runs when backend files changed,          #
+    #    or when manually forced. Frontend changes do NOT touch this.    #
+    #                                                                    #
+    #    Builds the container image once, pushes it to ECR, then points  #
+    #    BOTH Lambda functions (API + worker) at the new image. The two  #
+    #    functions share the same image; their handlers are configured   #
+    #    on the Lambda itself (Image Config → Command override).         #
+    # ------------------------------------------------------------------ #
+    deploy-backend:
+        name: Build & deploy backend (Lambda)
+        needs: changes
+        if: |
+            needs.changes.outputs.backend == 'true' ||
+            github.event.inputs.force_backend == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
 
-        - name: Build, tag, and push image to ECR
-          env:
-            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-            IMAGE_TAG: ${{ github.sha }}
-          run: |
-            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        
-        - name : Fill the new image URI in the task definition
-          id: fill-task-def
-          uses: aws-actions/amazon-ecs-render-task-definition@v1
-          with:
-            task-definition: ${{ env.AWS_ECS_TASK_DEFINITION }}
-            container-name: llm-container
-            image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: ${{ env.AWS_REGION }}
 
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
 
-        - name: Deploy to AWS
-          uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-          with:
-            cluster: ${{ env.AWS_ECS_CLUSTER }}
-            service: ${{ env.AWS_ECS_SERVICE }}
-            task-definition: ${{ steps.fill-task-def.outputs.task-definition }}
-            wait-for-service-stability: true
+            - name: Build, tag, and push image to ECR
+              id: build-image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  IMAGE_TAG: ${{ github.sha }}
+              run: |
+                  IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                  docker build -t $IMAGE_URI -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+                  docker push $IMAGE_URI
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+                  echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+            - name: Update API Lambda to new image
+              env:
+                  IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
+              run: |
+                  aws lambda update-function-code \
+                    --function-name "$LAMBDA_API_FUNCTION" \
+                    --image-uri "$IMAGE_URI" \
+                    --publish
+                  aws lambda wait function-updated \
+                    --function-name "$LAMBDA_API_FUNCTION"
+
+            - name: Update worker Lambda to new image
+              env:
+                  IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
+              run: |
+                  aws lambda update-function-code \
+                    --function-name "$LAMBDA_WORKER_FUNCTION" \
+                    --image-uri "$IMAGE_URI" \
+                    --publish
+                  aws lambda wait function-updated \
+                    --function-name "$LAMBDA_WORKER_FUNCTION"
+
+    # ------------------------------------------------------------------ #
+    # 3. Frontend deploy — only runs when frontend files changed,        #
+    #    or when manually forced. Backend changes do NOT touch this.     #
+    #                                                                    #
+    #    NOTE: Replace the placeholder deploy step with your real        #
+    #    target (S3 + CloudFront sync, Amplify, Vercel, etc.).           #
+    #    The build step is correct for the Vite app at frontend/ai_coach.#
+    # ------------------------------------------------------------------ #
+    deploy-frontend:
+        name: Build & deploy frontend
+        needs: changes
+        if: |
+            needs.changes.outputs.frontend == 'true' ||
+            github.event.inputs.force_frontend == 'true'
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: frontend/ai_coach
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+                  cache-dependency-path: frontend/ai_coach/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build
+              run: npm run build
+
+            # ---- Deploy step — uncomment the block matching your target ----
+            #
+            # Option A: S3 + CloudFront
+            # - name: Configure AWS credentials
+            #   uses: aws-actions/configure-aws-credentials@v4
+            #   with:
+            #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            #       aws-region: ${{ env.AWS_REGION }}
+            # - name: Sync to S3
+            #   run: aws s3 sync dist/ s3://${{ secrets.FRONTEND_BUCKET }} --delete
+            # - name: Invalidate CloudFront
+            #   run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CF_DIST_ID }} --paths "/*"
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: frontend-dist-${{ github.sha }}
+                  path: frontend/ai_coach/dist
+                  retention-days: 7

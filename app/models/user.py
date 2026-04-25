@@ -1,8 +1,14 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import re
 import uuid
 from typing import Optional, Literal
 from enum import Enum
 from datetime import datetime
+
+# Pragmatic email regex — covers the vast majority of valid addresses without
+# pulling in the full email-validator dependency. Not RFC 5322 perfect (no
+# implementation is), but rejects obvious junk like "a@", "@b", "@@@".
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 class Goal(str, Enum):
     MUSCLE_GAIN = "muscle_gain"
@@ -71,7 +77,7 @@ class User(BaseModel):
 
     @field_validator("email")
     def validate_email(cls, value):
-        if value is not None and "@" not in value:
+        if value is not None and not _EMAIL_RE.match(value):
             raise ValueError("Invalid email address")
         return value
 

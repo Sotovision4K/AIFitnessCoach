@@ -9,6 +9,6 @@ class RepositoryPort(Protocol):
         """Saves the generated workout plan for a user."""
         pass
 
-    async def get_last_week_workout(self):
-        """Retrieves workout plans generated in the last week."""
+    async def get_last_week_workout(self, user_id: str) -> list[dict]:
+        """Return this user's workout plans created in the last week."""
         pass
