@@ -29,6 +29,8 @@ Thumbs.db
 # Podman / Docker
 *.log
 docker-compose.prod.yml
+docker-compose.dev.yml
+docker-compose.override.yml
 
 # Terraform
 *.tfstate

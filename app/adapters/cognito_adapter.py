@@ -29,6 +29,15 @@ class CognitoAdapter:
         except exceptions.PyJWKClientError as e:
             
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
+
+    def warm_jwks(self) -> int:
+        """Pre-fetch the JWKS document so the first real request doesn't pay
+        the HTTPS round-trip to Cognito.
+
+        Returns the number of keys fetched. Safe to call multiple times.
+        """
+        keys = self.jwks_client.get_signing_keys()
+        return len(keys)
         
 
 
@@ -46,9 +55,9 @@ class CognitoAdapter:
                 options={"verify_exp": True, "verify_aud": True, "verify_iss": True, "verify_at_hash": False}, 
                 # require=["sub", "email"]  # Ensure required claims are present
             )
-            logger.info("Decoded claims: %s", claims)
             sub = claims.get("sub")
             email = claims.get("email")
+            logger.debug("Token verified for sub=%s", sub)
             return {"sub": sub, "email": email, "claims": claims}
         except JWTClaimsError as e:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token claims") from e

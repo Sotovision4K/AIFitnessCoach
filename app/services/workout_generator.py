@@ -20,10 +20,8 @@ class WorkoutGenerator:
         prompt = build_workout_prompt(request)
 
         plan = await self.llm_client.generate(prompt)
-        logger.info("LLM returned plan")
 
         if self._repository:
             await self._repository.save_workout_plan(request.userId, plan)
-            logger.info("Plan saved to repository")
 
         return plan

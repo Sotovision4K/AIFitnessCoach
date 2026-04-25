@@ -1,9 +1,20 @@
-name: Deploy to AWS ECS
+name: Deploy to AWS
 
 on:
     push:
         branches:
-        - main
+            - main
+    # Allow manual runs that force-deploy a side regardless of detected changes.
+    workflow_dispatch:
+        inputs:
+            force_backend:
+                description: "Force backend deploy"
+                type: boolean
+                default: false
+            force_frontend:
+                description: "Force frontend deploy"
+                type: boolean
+                default: false
 
 env:
     AWS_REGION: us-east-1
@@ -15,7 +26,13 @@ permissions:
     contents: read
     id-token: write
 jobs:
-    deploy:
+    # ------------------------------------------------------------------ #
+    # 1. Detect which parts of the repo changed.                         #
+    #    Outputs are consumed by the deploy jobs below so the backend    #
+    #    is never rebuilt for frontend-only commits, and vice versa.     #
+    # ------------------------------------------------------------------ #
+    changes:
+        name: Detect changed paths
         runs-on: ubuntu-latest
         environment: configure dev env
         steps:
