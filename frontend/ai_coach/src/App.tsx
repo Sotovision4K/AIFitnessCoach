@@ -52,11 +52,11 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { path: '/', element: <LandingPage /> },
-      { path: '/onboarding', element: 
+      { path: '/onboarding', element:
       <ProtectedRoute>
         <OnboardingPage />
       </ProtectedRoute> },
-      { path: '/dashboard', element: 
+      { path: '/dashboard', element:
       <ProtectedRoute>
         <DashboardPage />
       </ProtectedRoute> },

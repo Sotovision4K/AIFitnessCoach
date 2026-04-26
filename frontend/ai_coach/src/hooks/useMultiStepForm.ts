@@ -19,7 +19,7 @@ export function useMultiStepForm() {
   const [equipment, setEquipment] = useState<EquipmentAndLimitations | null>(null);
   const [preferences, setPreferences] = useState<Preferences | null>(null);
 
-  const auth = useAuth(); 
+  const auth = useAuth();
 
   const next = useCallback(() => setStep((s) => Math.min(s + 1, 4)), []);
   const back = useCallback(() => setStep((s) => Math.max(s - 1, 0)), []);

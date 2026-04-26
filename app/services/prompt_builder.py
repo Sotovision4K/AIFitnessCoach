@@ -1,12 +1,11 @@
-
 from app.models.user import User
 
 
 def build_workout_prompt(request: User) -> str:
     """Build an English-language prompt from a User model instance.
 
-        Uses ternary inclusion — optional fields are only mentioned
-        when they have values; the LLM never sees "missing" fields.
+    Uses ternary inclusion — optional fields are only mentioned
+    when they have values; the LLM never sees "missing" fields.
     """
     fitness_level = request.fitness_level.value
     split_type = request.split_type.value
@@ -28,9 +27,21 @@ def build_workout_prompt(request: User) -> str:
         lines.append(f"- Available equipment: {', '.join(request.equipment)}")
 
     if fitness_level != "beginner":
-        lines.append(f"- 1RM Squat: {request.squat_1rm_kg} kg" if request.squat_1rm_kg else "- 1RM Squat: N/A")
-        lines.append(f"- 1RM Bench Press: {request.bench_1rm_kg} kg" if request.bench_1rm_kg else "- 1RM Bench Press: N/A")
-        lines.append(f"- 1RM Deadlift: {request.deadlift_1rm_kg} kg" if request.deadlift_1rm_kg else "- 1RM Deadlift: N/A")
+        lines.append(
+            f"- 1RM Squat: {request.squat_1rm_kg} kg"
+            if request.squat_1rm_kg
+            else "- 1RM Squat: N/A"
+        )
+        lines.append(
+            f"- 1RM Bench Press: {request.bench_1rm_kg} kg"
+            if request.bench_1rm_kg
+            else "- 1RM Bench Press: N/A"
+        )
+        lines.append(
+            f"- 1RM Deadlift: {request.deadlift_1rm_kg} kg"
+            if request.deadlift_1rm_kg
+            else "- 1RM Deadlift: N/A"
+        )
 
     if request.injuries:
         lines.append(
@@ -43,7 +54,10 @@ def build_workout_prompt(request: User) -> str:
     lines.append(f"- Preferred split type: {split_type}")
 
     if request.cardio_included:
-        lines.append("- Include cardio: Yes" + (f" ({request.preferred_cardio})" if request.preferred_cardio else ""))
+        lines.append(
+            "- Include cardio: Yes"
+            + (f" ({request.preferred_cardio})" if request.preferred_cardio else "")
+        )
 
     if request.include_abs:
         lines.append("- Include abs exercises: Yes")
@@ -52,32 +66,36 @@ def build_workout_prompt(request: User) -> str:
         lines.append(f"- Additional comments: {request.additional_comments}")
 
     if fitness_level == "beginner":
-        lines.extend([
-            "",
-            "This user is a beginner. Use RPE-only guidance. "
-            "Do NOT use percentage-based loading. "
-            "Set weight_kg to 0 for bodyweight exercises or conservative "
-            "defaults for barbell/dumbbell movements. "
-            "Keep exercise selection simple and foundational.",
-        ])
+        lines.extend(
+            [
+                "",
+                "This user is a beginner. Use RPE-only guidance. "
+                "Do NOT use percentage-based loading. "
+                "Set weight_kg to 0 for bodyweight exercises or conservative "
+                "defaults for barbell/dumbbell movements. "
+                "Keep exercise selection simple and foundational.",
+            ]
+        )
 
     split_desc = _get_split_description(split_type, days)
-    lines.extend([
-        "",
-        split_desc,
-        "",
-        "For each session, order exercises as: "
-        "compound exercises first, then complementary movements "
-        "for the same compound, then accessories.",
-        "",
-        "Return the plan as a JSON object with this exact structure:",
-        '{"sessions": [{"label": "<session_name>", "day_number": <int>, '
-        '"exercises": [{"exercise": "<name>", "reps": <int>, "sets": <int>, '
-        '"rpe": <int 1-10>, "weight_kg": <int>, '
-        '"suggestion": "<focus description>"}]}]}',
-        "",
-        "Return ONLY valid JSON. No markdown, no explanation.",
-    ])
+    lines.extend(
+        [
+            "",
+            split_desc,
+            "",
+            "For each session, order exercises as: "
+            "compound exercises first, then complementary movements "
+            "for the same compound, then accessories.",
+            "",
+            "Return the plan as a JSON object with this exact structure:",
+            '{"sessions": [{"label": "<session_name>", "day_number": <int>, '
+            '"exercises": [{"exercise": "<name>", "reps": <int>, "sets": <int>, '
+            '"rpe": <int 1-10>, "weight_kg": <int>, '
+            '"suggestion": "<focus description>"}]}]}',
+            "",
+            "Return ONLY valid JSON. No markdown, no explanation.",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -110,5 +128,3 @@ def _get_split_description(split: str, days: int) -> str:
         "Chest & Triceps, Back & Biceps, Shoulders, Legs). "
         "Label each session with the target muscle group."
     )
-
-

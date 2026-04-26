@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 
-from aioboto3 import Session #type : ignore[import]
+from aioboto3 import Session  # type : ignore[import]
 from fastapi import Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.ports.idp_port import IDPPort
@@ -21,7 +21,9 @@ def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]
 
 
-@lru_cache(maxsize=1) #this is cheap to cache, we do not cache the resource since it holds HTTP connections
+@lru_cache(
+    maxsize=1
+)  # this is cheap to cache, we do not cache the resource since it holds HTTP connections
 def get_session() -> Session:
     """Return a reusable aioboto3 session.
 
@@ -38,7 +40,9 @@ def get_session() -> Session:
     return Session()
 
 
-async def get_dynamodb_resource(settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
+async def get_dynamodb_resource(
+    settings: Settings = Depends(get_settings), session: Session = Depends(get_session)
+):
     kwargs: dict = {"region_name": settings.AWS_REGION}
     if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
         kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
@@ -47,6 +51,7 @@ async def get_dynamodb_resource(settings: Settings = Depends(get_settings), sess
         kwargs["endpoint_url"] = settings.DYNAMODB_ENDPOINT
     async with session.resource("dynamodb", **kwargs) as dynamodb:
         yield dynamodb
+
 
 def auth_provider(settings: Settings = Depends(get_settings)) -> IDPPort:
     """Return a cached IDP provider instance. Singleton via lru_cache."""
@@ -82,21 +87,24 @@ def get_llm_client() -> ClaudeAdapter:
         temperature=settings.TEMPERATURE,
     )
 
+
 class CurrentUser:
     """Dependency to get the current authenticated user."""
-    def __init__(self, claims : dict):
+
+    def __init__(self, claims: dict):
         self.user_id = claims.get("sub", "")  # Assuming 'sub' claim contains user ID
-        self.email = claims.get("email", "") 
-        self.claims  = claims
-    
+        self.email = claims.get("email", "")
+        self.claims = claims
+
     def __repr__(self):
         return f"CurrentUser(user_id={self.user_id}, email={self.email})"
 
+
 async def get_current_user(
-        request: Request,
-        credentials: HTTPAuthorizationCredentials = Depends(security),
-        auth_provider: IDPPort = Depends(auth_provider)
-)-> CurrentUser:
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_provider: IDPPort = Depends(auth_provider),
+) -> CurrentUser:
     """Verify the bearer token and stash user_id on request.state for the
     access-log middleware."""
     token = credentials.credentials

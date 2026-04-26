@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -21,7 +20,11 @@ from app.dependency import (
 from app.models.job import JobStatus, WorkoutJob
 from app.models.workout_plan import WorkoutPlan
 from app.ports.event_bus_port import EventBusPort
-from app.schemas.response import ExerciseResponse, WorkoutDayResponse, WorkoutPlanClientResponse
+from app.schemas.response import (
+    ExerciseResponse,
+    WorkoutDayResponse,
+    WorkoutPlanClientResponse,
+)
 from app.services.workout_service import get_latest_workout_plan
 
 router = APIRouter()
@@ -125,7 +128,12 @@ async def get_job(
     return job.model_dump()
 
 
-@router.get("/latest", status_code=200, response_model=WorkoutPlanClientResponse, response_model_by_alias=True)
+@router.get(
+    "/latest",
+    status_code=200,
+    response_model=WorkoutPlanClientResponse,
+    response_model_by_alias=True,
+)
 async def get_latest_workout(
     settings: Settings = Depends(get_settings),
     current_user: CurrentUser = Depends(get_current_user),

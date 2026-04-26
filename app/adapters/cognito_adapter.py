@@ -1,4 +1,3 @@
-
 import logging
 
 from app.dependency import Settings
@@ -12,23 +11,23 @@ logger = logging.getLogger(__name__)
 
 class CognitoAdapter:
     """Adapter to handle interactions with AWS Cognito for user authentication."""
-    def __init__(self, settings : Settings):
+
+    def __init__(self, settings: Settings):
         self.settings = settings
         self.jwks_client = PyJWKClient(
-                        uri=self.settings.jwks_url, 
-                        cache_keys=True, 
-                        lifespan=300
-                    )
-    
+            uri=self.settings.jwks_url, cache_keys=True, lifespan=300
+        )
 
     def get_public_key(self, token: str) -> PyJWK:
         """Fetch the public key from Cognito JWKS endpoint based on the token's kid."""
         try:
-            signing_key : PyJWK  = self.jwks_client.get_signing_key_from_jwt(token)
+            signing_key: PyJWK = self.jwks_client.get_signing_key_from_jwt(token)
             return signing_key.key
         except exceptions.PyJWKClientError as e:
-            
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
+
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            ) from e
 
     def warm_jwks(self) -> int:
         """Pre-fetch the JWKS document so the first real request doesn't pay
@@ -38,8 +37,6 @@ class CognitoAdapter:
         """
         keys = self.jwks_client.get_signing_keys()
         return len(keys)
-        
-
 
     def verify_token(self, token: str) -> dict:
         """Verify the JWT token with Cognito and return the claims."""
@@ -52,7 +49,12 @@ class CognitoAdapter:
                 algorithms=["RS256"],
                 audience=self.settings.COGNITO_CLIENT_ID,
                 issuer=self.settings.cognito_issuer,
-                options={"verify_exp": True, "verify_aud": True, "verify_iss": True, "verify_at_hash": False}, 
+                options={
+                    "verify_exp": True,
+                    "verify_aud": True,
+                    "verify_iss": True,
+                    "verify_at_hash": False,
+                },
                 # require=["sub", "email"]  # Ensure required claims are present
             )
             sub = claims.get("sub")
@@ -60,10 +62,16 @@ class CognitoAdapter:
             logger.debug("Token verified for sub=%s", sub)
             return {"sub": sub, "email": email, "claims": claims}
         except JWTClaimsError as e:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token claims") from e
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token claims"
+            ) from e
         except exceptions.ExpiredSignatureError as e:
             # Handle token verification errors
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired") from e
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
+            ) from e
 
         except exceptions.InvalidTokenError as e:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            ) from e

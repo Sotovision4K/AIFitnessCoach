@@ -71,9 +71,7 @@ async def _process(detail: dict, settings: Settings) -> None:
             logger.info("job_completed job_id=%s user_id=%s", job_id, user_id)
         except Exception:
             # logger.exception captures the traceback automatically.
-            logger.exception(
-                "job_failed job_id=%s user_id=%s", job_id, user_id
-            )
+            logger.exception("job_failed job_id=%s user_id=%s", job_id, user_id)
             await repo.update_job_status(
                 user_id,
                 job_id,
@@ -90,7 +88,9 @@ def handler(event: dict, context) -> dict:
     detail = event.get("detail") or {}
 
     if not detail.get("jobId") or not detail.get("userId"):
-        logger.error("event_malformed missing_fields detail_keys=%s", list(detail.keys()))
+        logger.error(
+            "event_malformed missing_fields detail_keys=%s", list(detail.keys())
+        )
         # Don't raise — let EventBridge drop it (no point retrying a bad shape)
         return {"status": "ignored", "reason": "malformed"}
 

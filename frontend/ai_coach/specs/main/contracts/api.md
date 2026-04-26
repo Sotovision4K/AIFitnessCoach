@@ -1,6 +1,6 @@
 # API Contracts: IRON MIND Frontend
 
-**Date**: 2026-04-13  
+**Date**: 2026-04-13
 **Plan**: `specs/main/plan.md`
 
 These contracts document the REST API endpoints the frontend consumes.

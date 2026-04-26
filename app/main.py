@@ -30,7 +30,9 @@ def _load_settings():
     try:
         return get_settings()
     except ValidationError as exc:
-        missing = sorted({err["loc"][0] for err in exc.errors() if err["type"] == "missing"})
+        missing = sorted(
+            {err["loc"][0] for err in exc.errors() if err["type"] == "missing"}
+        )
         logger.critical(
             "Configuration error: missing required environment variables: %s",
             ", ".join(str(m) for m in missing) or "<see traceback>",
@@ -106,7 +108,9 @@ app.add_middleware(
 
 
 @app.exception_handler(AppBaseException)
-async def app_exception_handler(request: Request, exc: AppBaseException) -> JSONResponse:
+async def app_exception_handler(
+    request: Request, exc: AppBaseException
+) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content=exc.to_dict())
 
 

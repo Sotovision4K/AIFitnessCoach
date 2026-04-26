@@ -200,4 +200,3 @@ export function EquipmentStep({ defaultValues, onNext, onBack }: EquipmentStepPr
     </form>
   );
 }
-

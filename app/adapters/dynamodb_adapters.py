@@ -1,4 +1,4 @@
-from boto3.dynamodb.conditions import Key # type: ignore[import]
+from boto3.dynamodb.conditions import Key  # type: ignore[import]
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 import logging
@@ -20,6 +20,7 @@ def _floats_to_decimal(obj):
         return [_floats_to_decimal(v) for v in obj]
     return obj
 
+
 def _decimals_to_float(obj):
     if isinstance(obj, Decimal):
         return float(obj)
@@ -29,8 +30,8 @@ def _decimals_to_float(obj):
         return [_decimals_to_float(v) for v in obj]
     return obj
 
-class DynamoDBAdapter:
 
+class DynamoDBAdapter:
     def __init__(self, settings: Settings, dynamodb):
         self._settings = settings
         self._dynamodb = dynamodb
@@ -84,8 +85,10 @@ class DynamoDBAdapter:
         on a global secondary key alone.
         """
         last_week_monday = (
-            datetime.now() - timedelta(days=datetime.now().weekday() + 7)
-        ).date().isoformat()
+            (datetime.now() - timedelta(days=datetime.now().weekday() + 7))
+            .date()
+            .isoformat()
+        )
         table = await self._dynamodb.Table(self._settings.DYNAMO_TABLE_NAME)
         response = await table.query(
             KeyConditionExpression=Key("userId").eq(user_id)
@@ -156,4 +159,3 @@ class DynamoDBAdapter:
             ExpressionAttributeNames=names,
             ExpressionAttributeValues=values,
         )
-    

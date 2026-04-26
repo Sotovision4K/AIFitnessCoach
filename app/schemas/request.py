@@ -1,4 +1,3 @@
-
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -26,9 +25,7 @@ _INJECTION_PATTERNS = [
     r"override\s+(your|the)\s+",
 ]
 
-_INJECTION_RE = re.compile(
-    "|".join(_INJECTION_PATTERNS), re.IGNORECASE
-)
+_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE)
 
 
 def _check_prompt_injection(value: str, field_name: str) -> str:
@@ -38,16 +35,19 @@ def _check_prompt_injection(value: str, field_name: str) -> str:
         raise ValueError(msg)
     return value.strip()
 
+
 class ActivityLevel(str, Enum):
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
+
 
 class SplitType(str, Enum):
     FULL_BODY = "full_body"
     UPPER_LOWER = "upper_lower"
     PUSH_PULL_LEGS = "push_pull_legs"
     BRO_SPLIT = "bro_split"
+
 
 class Language(str, Enum):
     EN = "en"
@@ -148,10 +148,7 @@ class WorkoutGenerateRequest(BaseModel):
     @model_validator(mode="after")
     def validate_split_days_compatibility(self) -> Self:
         """Cap gym days if they exceed the max for a given split."""
-        if (
-            self.split_type == SplitType.UPPER_LOWER
-            and self.gym_days_per_week > 6
-        ):
+        if self.split_type == SplitType.UPPER_LOWER and self.gym_days_per_week > 6:
             self.gym_days_per_week = 6
         return self
 

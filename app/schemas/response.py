@@ -61,6 +61,7 @@ class ProfileResponse(BaseModel):
 
 # --- Frontend-aligned workout response (matches frontend/ai_coach/src/types/workout.ts) ---
 
+
 class ExerciseResponse(BaseModel):
     id: str
     name: str
@@ -69,7 +70,9 @@ class ExerciseResponse(BaseModel):
     weight_kg: float | None = Field(serialization_alias="weightKg", default=None)
     rpe: int | None = None
     notes: str | None = None
-    previous_weight_kg: float | None = Field(serialization_alias="previousWeightKg", default=None)
+    previous_weight_kg: float | None = Field(
+        serialization_alias="previousWeightKg", default=None
+    )
 
     model_config = {"populate_by_name": True}
 
