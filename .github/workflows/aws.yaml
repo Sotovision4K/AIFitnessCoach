@@ -27,6 +27,10 @@ concurrency:
     group: deploy-${{ github.ref }}
     cancel-in-progress: false
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
 
     changes:
