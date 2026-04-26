@@ -4,7 +4,6 @@ on:
     push:
         branches:
             - main
-    # Allow manual runs that force-deploy a side regardless of detected changes.
     workflow_dispatch:
         inputs:
             force_backend:
@@ -15,7 +14,6 @@ on:
                 description: "Force frontend deploy"
                 type: boolean
                 default: false
-
 env:
     AWS_REGION: us-east-1
     ECR_REPOSITORY: ai-coach-api
@@ -44,7 +42,6 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
               with:
-                  # paths-filter needs history to diff against the previous commit on push events.
                   fetch-depth: 2
 
             - name: Filter paths
@@ -69,6 +66,8 @@ jobs:
             needs.changes.outputs.backend == 'true' ||
             github.event.inputs.force_backend == 'true'
         runs-on: ubuntu-latest
+        environment: configure dev env
+
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
