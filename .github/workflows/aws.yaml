@@ -19,7 +19,8 @@ on:
 env:
     AWS_REGION: us-east-1
     ECR_REPOSITORY: ai-coach-api
-
+    AWS_ACCESS_KEY_ID : ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY : ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     API_LAMBDA_NAME: ai-coach-dev-api
     WORKER_LAMBDA_NAME: ai-coach-dev-worker
 
