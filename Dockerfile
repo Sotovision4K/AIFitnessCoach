@@ -1,14 +1,10 @@
-# ---- App image ----
-FROM python:3.12-slim
 
-WORKDIR /app
+FROM public.ecr.aws/lambda/python:3.12
 
-COPY requirements.txt .
-RUN cat requirements.txt && echo "Installing dependencies..."
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
-COPY app/ ./app/
+COPY app/ ${LAMBDA_TASK_ROOT}/app/
 
-EXPOSE 8080
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["app.main.handler"]
