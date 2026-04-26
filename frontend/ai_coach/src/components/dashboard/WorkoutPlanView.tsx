@@ -164,4 +164,3 @@ export function WorkoutPlanView({ plan, isLoading, error }: WorkoutPlanViewProps
     </>
   );
 }
-

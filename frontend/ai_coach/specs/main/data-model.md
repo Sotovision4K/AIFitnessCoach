@@ -1,6 +1,6 @@
 # Data Model: IRON MIND Frontend
 
-**Date**: 2026-04-13  
+**Date**: 2026-04-13
 **Plan**: `specs/main/plan.md`
 
 ---

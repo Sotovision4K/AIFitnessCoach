@@ -34,11 +34,16 @@ async def generate_and_save(
     if llm_client is None:
         llm_client = get_llm_client()
 
-    plan = await WorkoutGenerator(llm_client=llm_client, settings=settings).generate(user)
+    plan = await WorkoutGenerator(llm_client=llm_client, settings=settings).generate(
+        user
+    )
     await repo.save_workout_plan(user_id, plan)
 
     return plan
 
-async def get_latest_workout_plan(settings: Settings, dynamodb, user_id: str) -> WorkoutPlan | None:
+
+async def get_latest_workout_plan(
+    settings: Settings, dynamodb, user_id: str
+) -> WorkoutPlan | None:
     repo = DynamoDBAdapter(settings, dynamodb)
     return await repo.get_last_workout(user_id)

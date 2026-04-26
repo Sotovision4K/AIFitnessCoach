@@ -1,4 +1,3 @@
-
 import json
 import logging
 
@@ -14,14 +13,20 @@ from app.models.workout_plan import WorkoutPlan
 from json import loads
 import re
 
-class ClaudeAdapter():
 
-    def __init__(self, anthropic_api_key: str, anthropic_api_model: str, max_tokens: int, temperature: float):
+class ClaudeAdapter:
+    def __init__(
+        self,
+        anthropic_api_key: str,
+        anthropic_api_model: str,
+        max_tokens: int,
+        temperature: float,
+    ):
         self.client = Anthropic(api_key=anthropic_api_key)
         self.anthropic_api_model = anthropic_api_model
         self.max_tokens = max_tokens
         self.temperature = temperature
-    
+
     async def generate(self, prompt: str) -> WorkoutPlan:
         response = self.client.messages.create(
             model=self.anthropic_api_model,
@@ -58,7 +63,6 @@ class ClaudeAdapter():
             logger.exception("llm_parse_unexpected_error")
             raise LLMerror("Failed to parse workout plan")
 
-    
     def _parse_response(self, response: str) -> WorkoutPlan:
         """
         Handles all possible formats Claude might return:
@@ -69,12 +73,12 @@ class ClaudeAdapter():
         """
         text = response.strip()
 
-        match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
         if match:
             text = match.group(1)
-        
+
         else:
-            match = re.search(r'\{.*\}', text, re.DOTALL)
+            match = re.search(r"\{.*\}", text, re.DOTALL)
             if match:
                 text = match.group(0)
 
@@ -91,4 +95,3 @@ class ClaudeAdapter():
             )
             logger.debug("Raw LLM response (debug only): %s", response)
             raise LLMerror("Failed to parse workout plan JSON") from e
-

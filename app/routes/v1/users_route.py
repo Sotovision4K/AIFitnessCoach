@@ -1,18 +1,22 @@
-
-
-
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.adapters.dynamodb_adapters import DynamoDBAdapter
 from app.config import Settings
-from app.dependency import get_current_user, get_settings, get_dynamodb_resource, CurrentUser
+from app.dependency import (
+    get_current_user,
+    get_settings,
+    get_dynamodb_resource,
+    CurrentUser,
+)
 from app.models.user import User
 from app.schemas.request import ProfileUpsertRequest
 
 router = APIRouter()
 
 
-def _get_repository(settings: Settings = Depends(get_settings), dynamodb=Depends(get_dynamodb_resource)) -> DynamoDBAdapter:
+def _get_repository(
+    settings: Settings = Depends(get_settings), dynamodb=Depends(get_dynamodb_resource)
+) -> DynamoDBAdapter:
     return DynamoDBAdapter(settings, dynamodb)
 
 
@@ -23,7 +27,9 @@ async def get_profile(
 ):
     profile = await repo.get_user_profile(current_user.user_id)
     if not profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User profile not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User profile not found"
+        )
     return profile
 
 

@@ -2,8 +2,8 @@ from typing import Protocol
 
 from app.models.workout_plan import WorkoutPlan
 
-class LlmPort(Protocol):
 
+class LlmPort(Protocol):
     async def generate(self, prompt: str) -> WorkoutPlan:
         """Generates a workout plan based on the provided user data."""
         pass

@@ -16,15 +16,15 @@ fonts.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (strict mode) on React 19  
-**Build Tool**: Vite 6 with `@tailwindcss/vite`  
-**Primary Dependencies**: React 19, React Router v7, Tailwind CSS 4, shadcn/ui, Radix UI, Framer Motion, React Hook Form, Zod, AWS Amplify v6, Lucide React  
-**Storage**: N/A (frontend only — consumes REST API)  
-**Testing**: NEEDS CLARIFICATION (no testing framework specified by user)  
-**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge — latest 2 versions)  
-**Project Type**: Single-page web application (frontend only)  
-**Performance Goals**: Lighthouse 90+ all categories, lazy-loaded below-the-fold sections, self-hosted fonts with `font-display: swap`  
-**Constraints**: No external CDN dependencies at runtime, no CSS-in-JS, components ≤ 150 lines, mobile-first responsive  
+**Language/Version**: TypeScript 5.x (strict mode) on React 19
+**Build Tool**: Vite 6 with `@tailwindcss/vite`
+**Primary Dependencies**: React 19, React Router v7, Tailwind CSS 4, shadcn/ui, Radix UI, Framer Motion, React Hook Form, Zod, AWS Amplify v6, Lucide React
+**Storage**: N/A (frontend only — consumes REST API)
+**Testing**: NEEDS CLARIFICATION (no testing framework specified by user)
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge — latest 2 versions)
+**Project Type**: Single-page web application (frontend only)
+**Performance Goals**: Lighthouse 90+ all categories, lazy-loaded below-the-fold sections, self-hosted fonts with `font-display: swap`
+**Constraints**: No external CDN dependencies at runtime, no CSS-in-JS, components ≤ 150 lines, mobile-first responsive
 **Scale/Scope**: ~10 pages/screens, 6 phases, 5-step onboarding form, 6 landing sections
 
 ## Constitution Check

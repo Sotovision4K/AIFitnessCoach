@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 class WorkoutGenerator:
     """Class responsible for generating workout plans based on user input and preferences."""
 
-    def __init__(self, llm_client : LlmPort, settings = None, repository: RepositoryPort | None = None):
+    def __init__(
+        self,
+        llm_client: LlmPort,
+        settings=None,
+        repository: RepositoryPort | None = None,
+    ):
         self.llm_client = llm_client
         self.settings = settings
         self._repository = repository

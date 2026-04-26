@@ -10,32 +10,38 @@ from datetime import datetime
 # implementation is), but rejects obvious junk like "a@", "@b", "@@@".
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
+
 class Goal(str, Enum):
     MUSCLE_GAIN = "muscle_gain"
     FAT_LOSS = "fat_loss"
     ENDURANCE = "endurance"
     STRENGTH = "strength"
 
+
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
     OTHER = "other"
+
 
 class FitnessLevel(str, Enum):
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
 
+
 class GymAccessType(str, Enum):
     FULL_GYM = "full_gym"
     HOME_GYM = "home_gym"
     NO_EQUIPMENT = "no_equipment"
+
 
 class SplitType(str, Enum):
     FULL_BODY = "full_body"
     UPPER_LOWER = "upper_lower"
     PUSH_PULL_LEGS = "push_pull_legs"
     BRO_SPLIT = "bro_split"
+
 
 class User(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
@@ -73,7 +79,6 @@ class User(BaseModel):
     squat_1rm_kg: int | None = Field(alias="squatKg", default=None)
     bench_1rm_kg: int | None = Field(alias="benchPressKg", default=None)
     deadlift_1rm_kg: int | None = Field(alias="deadliftKg", default=None)
-    
 
     @field_validator("email")
     def validate_email(cls, value):
@@ -81,10 +86,11 @@ class User(BaseModel):
             raise ValueError("Invalid email address")
         return value
 
-
     @field_validator("additional_comments")
     def validate_additional_comments(cls, value):
         max_length = 500
         if len(value) > max_length:
-            raise ValueError(f"Additional comments must not exceed {max_length} characters")
+            raise ValueError(
+                f"Additional comments must not exceed {max_length} characters"
+            )
         return value.strip()

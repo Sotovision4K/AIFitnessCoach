@@ -94,4 +94,3 @@ export function ExerciseCard({ exercise, onClick }: ExerciseCardProps) {
     </div>
   );
 }
-
