@@ -1,0 +1,98 @@
+name: Deploy backend (API)
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - "app/main.py"
+            - "app/routes/**"
+            - "app/services/**"
+            - "app/schemas/**"
+            - "app/models/**"
+            - "app/adapters/**"
+            - "app/ports/**"
+            - "app/exceptions/**"
+            - "app/dependency.py"
+            - "app/config.py"
+            - "app/__init__.py"
+            - "requirements.txt"
+            - "Dockerfile"
+            - ".github/workflows/backend.yaml"
+    workflow_dispatch:
+
+env:
+    AWS_REGION: us-east-1
+    ECR_REPOSITORY: ai-coach-api
+    API_LAMBDA_NAME: ai-coach-dev-api
+
+concurrency:
+    group: deploy-backend-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+    id-token: write
+    security-events: write
+    pull-requests: read
+
+jobs:
+    sast:
+        name: SAST gate
+        uses: ./.github/workflows/sast.yaml
+        secrets: inherit
+
+    deploy-api:
+        needs: sast
+        name: Build image & update API Lambda
+        runs-on: ubuntu-latest
+        environment: dev
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Set up QEMU (arm64 emulation)
+              uses: docker/setup-qemu-action@v3
+              with:
+                  platforms: arm64
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build, tag, and push image (linux/arm64)
+              id: build-image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  IMAGE_TAG: ${{ github.sha }}
+              run: |
+                  IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                  docker buildx build \
+                    --platform linux/arm64 \
+                    --provenance=false \
+                    -t $IMAGE_URI \
+                    -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+                    --push \
+                    .
+                  echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+            - name: Update API Lambda to new image
+              env:
+                  IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
+              run: |
+                  aws lambda update-function-code \
+                    --function-name "$API_LAMBDA_NAME" \
+                    --image-uri "$IMAGE_URI" \
+                    --publish
+                  aws lambda wait function-updated \
+                    --function-name "$API_LAMBDA_NAME"

@@ -37,8 +37,6 @@ async def _process(detail: dict, settings: Settings) -> None:
     job_id = detail["jobId"]
     user_id = detail["userId"]
 
-    # Use static creds only if explicitly provided; otherwise fall back to the
-    # Lambda execution role via the default boto3 credential chain.
     if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
         session = aioboto3.Session(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
