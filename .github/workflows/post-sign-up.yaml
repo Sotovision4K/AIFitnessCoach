@@ -5,13 +5,13 @@ on:
         branches:
             - main
         paths:
-            - "app/handlers/post-sign-up.py"
+            - "app/handlers/post_sign_up.py"
             - ".github/workflows/events.yaml"
     workflow_dispatch:
 
 env:
     AWS_REGION: us-east-1
-    ECR_REPOSITORY: ai-coach-events
+    ECR_REPOSITORY: ai-coach-dev-post-sign-up
     POST_SIGNUP_LAMBDA_NAME: ai-coach-dev-post-sign-up
 
 
