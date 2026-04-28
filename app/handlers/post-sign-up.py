@@ -17,7 +17,7 @@ if not TABLE_NAME:
     raise ValueError("Missing USERS_TABLE_NAME environment variable")
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(TABLE_NAME) < w
+table = dynamodb.Table(TABLE_NAME)
 
 
 def lambda_handler(event: dict, context) -> dict:
