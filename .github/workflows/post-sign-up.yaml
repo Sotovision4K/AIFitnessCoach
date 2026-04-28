@@ -5,7 +5,7 @@ on:
         branches:
             - main
         paths:
-            - "app/handlers/post-sign-up.py"
+            - "app/handlers/post_sign_up.py"
             - ".github/workflows/events.yaml"
     workflow_dispatch:
 
