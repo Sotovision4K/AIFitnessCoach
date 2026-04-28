@@ -34,7 +34,7 @@ jobs:
         needs: sast
         name: Build image & update worker lambda
         runs-on: ubuntu-latest
-        environment: dev
+        environment: configure dev env
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
