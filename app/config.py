@@ -24,9 +24,9 @@ class Settings(BaseSettings):
 
     # dynamodb configuration
     AWS_REGION: str = "us-east-1"
-    DYNAMO_TABLE_NAME: str = "workout_plans"
-    USERS_TABLE_NAME: str = "user_table"
-    JOBS_TABLE_NAME: str = "workout_jobs"
+    DYNAMO_TABLE_NAME: str = "ai-coach-workout-plans"
+    USERS_TABLE_NAME: str = "ai-coach-users"
+    JOBS_TABLE_NAME: str = "ai-coach-workout-jobs"
     # Static credentials. Leave UNSET on Lambda so boto3 uses the execution
     # role's credential chain. Only set these for local dev or non-AWS envs.
     AWS_ACCESS_KEY_ID: str | None = None

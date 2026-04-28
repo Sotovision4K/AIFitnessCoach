@@ -156,6 +156,5 @@ async def access_log_middleware(request: Request, call_next):
 
 app.include_router(api_v1_router)
 
-# Mangum handler for AWS Lambda (no-op when running under uvicorn locally).
-# lifespan="on" makes Mangum drive startup/shutdown so our pre-warm runs.
+
 handler = Mangum(app, lifespan="on")
