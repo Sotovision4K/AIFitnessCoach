@@ -11,7 +11,7 @@ on:
 
 env:
     AWS_REGION: us-east-1
-    ECR_REPOSITORY: ai-coach-events
+    ECR_REPOSITORY: ai-coach-dev-post-sign-up
     POST_SIGNUP_LAMBDA_NAME: ai-coach-dev-post-sign-up
 
 
