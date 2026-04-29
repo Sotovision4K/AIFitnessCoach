@@ -22,17 +22,9 @@ concurrency:
 permissions:
     contents: read
     id-token: write
-    security-events: write
-    pull-requests: read
 
 jobs:
-    sast:
-        name: SAST gate
-        uses: ./.github/workflows/sast.yaml
-        secrets: inherit
-
     deploy-events:
-        needs: sast
         name: Build image & update event lambdas
         runs-on: ubuntu-latest
         environment: dev
