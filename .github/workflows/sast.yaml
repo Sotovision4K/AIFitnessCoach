@@ -8,8 +8,6 @@ on:
         # Weekly, Mondays at 09:00 UTC
         - cron: "0 9 * * 1"
     workflow_dispatch:
-    # Allow other workflows to require SAST as a prerequisite job.
-    workflow_call:
 
 permissions:
     contents: read

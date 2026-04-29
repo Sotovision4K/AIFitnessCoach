@@ -20,7 +20,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(TABLE_NAME)
 
 
-def lambda_handler(event: dict, context) -> dict:
+def handler(event: dict, context) -> dict:
     """
     Cognito Post Confirmation Lambda Trigger.
     Creates a user profile in DynamoDB after successful sign-up confirmation.
