@@ -1,10 +1,10 @@
 import logging
 
 from app.dependency import Settings
+from app.exceptions.auth import AuthenticationError
 from jose import jwt
 from jose.exceptions import JWTClaimsError
 from jwt import PyJWKClient, PyJWK, exceptions
-from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class CognitoAdapter:
             signing_key: PyJWK = self.jwks_client.get_signing_key_from_jwt(token)
             return signing_key.key
         except exceptions.PyJWKClientError as e:
-
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            raise AuthenticationError(
+                "Unable to fetch JWKS signing key",
+                details={"reason": str(e)},
             ) from e
 
     def warm_jwks(self) -> int:
@@ -62,16 +62,8 @@ class CognitoAdapter:
             logger.debug("Token verified for sub=%s", sub)
             return {"sub": sub, "email": email, "claims": claims}
         except JWTClaimsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token claims"
-            ) from e
+            raise AuthenticationError("Invalid token claims") from e
         except exceptions.ExpiredSignatureError as e:
-            # Handle token verification errors
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
-            ) from e
-
+            raise AuthenticationError("Token has expired") from e
         except exceptions.InvalidTokenError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-            ) from e
+            raise AuthenticationError("Invalid token") from e

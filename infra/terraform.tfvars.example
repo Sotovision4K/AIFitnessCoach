@@ -1,0 +1,28 @@
+aws_region  = "us-east-1"
+project     = "ai-coach"
+environment = "dev"
+
+# Leave blank; authenticate via env vars / SSO / shared profile.
+aws_access_key = ""
+aws_secret_key = ""
+
+image_tag = "latest"
+
+# Application configuration
+anthropic_api_key     = ""        # Prefer TF_VAR_anthropic_api_key or Secrets Manager
+anthropic_api_model   = "claude-3-5-sonnet-20241022"
+anthropic_secret_arns = []        # e.g. ["arn:aws:secretsmanager:us-east-1:123456789012:secret:ai-coach/anthropic-XXXX"]
+
+cognito_user_pool_id = ""
+cognito_client_id    = ""
+cognito_region       = "us-east-1"
+cognito_jwks_url     = ""
+
+allowed_origins = ["https://app.example.com"]
+
+# Override default DynamoDB table layout if needed:
+# dynamodb_tables = {
+#   users         = { name = "user_table",     hash_key = "userId", attributes = [{ name = "userId", type = "S" }] }
+#   workout_plans = { name = "workout_plans",  hash_key = "userId", range_key = "createdAt", attributes = [{ name = "userId", type = "S" }, { name = "createdAt", type = "S" }] }
+#   jobs          = { name = "workout_jobs",   hash_key = "jobId",  attributes = [{ name = "jobId",   type = "S" }] }
+# }

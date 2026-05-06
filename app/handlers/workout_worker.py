@@ -67,7 +67,7 @@ async def _process(detail: dict, settings: Settings) -> None:
                 workout_plan_created_at=datetime.now(timezone.utc).date().isoformat(),
             )
             logger.info("job_completed job_id=%s user_id=%s", job_id, user_id)
-        except Exception:
+        except Exception as e:
             # logger.exception captures the traceback automatically.
             logger.exception("job_failed job_id=%s user_id=%s", job_id, user_id)
             await repo.update_job_status(
