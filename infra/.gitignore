@@ -1,0 +1,24 @@
+# Local Terraform state and caches
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+
+# Plan / debug artifacts
+tfplan
+*.tfplan
+plan.json
+
+# Variable files containing secrets
+terraform.tfvars
+*.auto.tfvars
+!terraform.tfvars.example
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
