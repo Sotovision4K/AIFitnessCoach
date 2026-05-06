@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ExerciseEntry(BaseModel):
@@ -11,7 +13,7 @@ class ExerciseEntry(BaseModel):
     weight_kg: float | None = None
     suggestion: str | None = None
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class SessionPlan(BaseModel):
@@ -31,3 +33,8 @@ class WorkoutPlan(BaseModel):
     split_type: str | None = None
     is_active: bool = True
     language: str = "en"
+    created_at: str | None = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    model_config = ConfigDict(populate_by_name=True)

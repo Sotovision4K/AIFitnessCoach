@@ -26,7 +26,4 @@ class WorkoutGenerator:
 
         plan = await self.llm_client.generate(prompt)
 
-        if self._repository:
-            await self._repository.save_workout_plan(request.userId, plan)
-
         return plan

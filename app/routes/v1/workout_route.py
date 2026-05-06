@@ -76,7 +76,7 @@ async def request_workout_generation(
          the actual LLM generation asynchronously.
     """
     repo = DynamoDBAdapter(settings, dynamodb)
-    job = WorkoutJob(user_id=current_user.user_id)
+    job = WorkoutJob(userId=current_user.user_id)
 
     await repo.create_job(job)
     logger.info(
@@ -125,7 +125,7 @@ async def get_job(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found",
         )
-    return job.model_dump()
+    return job.model_dump(by_alias=True)
 
 
 @router.get(

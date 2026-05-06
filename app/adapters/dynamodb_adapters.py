@@ -42,8 +42,10 @@ class DynamoDBAdapter:
         await table.put_item(
             Item={
                 "userId": user_id,
-                "workout_plan": _floats_to_decimal(workout_plan.model_dump()),
-                "created_at": today_without_time,
+                "workout_plan": _floats_to_decimal(
+                    workout_plan.model_dump(by_alias=True)
+                ),
+                "createdAt": today_without_time,
             }
         )
         return {"message": "Workout plan saved successfully!"}
@@ -60,6 +62,8 @@ class DynamoDBAdapter:
         try:
 
             item = _floats_to_decimal(user.model_dump(by_alias=True))
+            # Key attributes cannot appear in an UpdateExpression.
+            item.pop("userId", None)
             table = await self._dynamodb.Table(self._settings.USERS_TABLE_NAME)
 
             name_map = {f"#{k}": k for k in item.keys()}
@@ -92,7 +96,7 @@ class DynamoDBAdapter:
         table = await self._dynamodb.Table(self._settings.DYNAMO_TABLE_NAME)
         response = await table.query(
             KeyConditionExpression=Key("userId").eq(user_id)
-            & Key("created_at").gte(last_week_monday),
+            & Key("createdAt").gte(last_week_monday),
         )
         return response.get("Items", [])
 
@@ -116,16 +120,25 @@ class DynamoDBAdapter:
     async def create_job(self, job: WorkoutJob) -> None:
         """Insert a PENDING job. Idempotent on jobId via condition expression."""
         table = await self._dynamodb.Table(self._settings.JOBS_TABLE_NAME)
-        await table.put_item(
-            Item=_floats_to_decimal(job.model_dump()),
-            ConditionExpression="attribute_not_exists(job_id)",
-        )
+        try:
+            await table.put_item(
+                Item=_floats_to_decimal(job.model_dump(by_alias=True)),
+                ConditionExpression="attribute_not_exists(jobId)",
+            )
+        except Exception:
+            logger.exception(
+                "create_job_failed job_id=%s user_id=%s", job.job_id, job.user_id
+            )
+            raise
 
     async def get_job(self, user_id: str, job_id: str) -> WorkoutJob | None:
         table = await self._dynamodb.Table(self._settings.JOBS_TABLE_NAME)
-        response = await table.get_item(Key={"user_id": user_id, "job_id": job_id})
+        response = await table.get_item(Key={"jobId": job_id})
         item = response.get("Item")
         if not item:
+            return None
+        # Tenant isolation: never return a job that doesn't belong to the caller.
+        if item.get("userId") != user_id:
             return None
         return WorkoutJob.model_validate(_decimals_to_float(item))
 
@@ -141,21 +154,22 @@ class DynamoDBAdapter:
         now = datetime.now(timezone.utc).isoformat()
 
         update_parts = ["#s = :s", "#u = :u"]
-        names: dict = {"#s": "status", "#u": "updated_at"}
-        values: dict = {":s": status.value, ":u": now}
+        names: dict = {"#s": "status", "#u": "updatedAt", "#owner": "userId"}
+        values: dict = {":s": status.value, ":u": now, ":owner": user_id}
 
         if error is not None:
             update_parts.append("#e = :e")
             names["#e"] = "error"
-            values[":e"] = error[:500]  # cap stored error length
+            values[":e"] = error[:500]
         if workout_plan_created_at is not None:
             update_parts.append("#w = :w")
-            names["#w"] = "workout_plan_created_at"
+            names["#w"] = "workoutPlanCreatedAt"
             values[":w"] = workout_plan_created_at
 
         await table.update_item(
-            Key={"user_id": user_id, "job_id": job_id},
+            Key={"jobId": job_id},
             UpdateExpression="SET " + ", ".join(update_parts),
+            ConditionExpression="#owner = :owner",
             ExpressionAttributeNames=names,
             ExpressionAttributeValues=values,
         )
